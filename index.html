@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>场景复杂度下的模型准确率对比</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.4/dist/svg2pdf.umd.min.js"></script>
+  <style>
+    body { margin: 0; padding: 20px; background: #fff; font-family: 'Noto Sans SC', 'Microsoft YaHei', 'SimHei', 'Source Han Sans SC', sans-serif; }
+    .container { width: 900px; }
+    #chart { width: 900px; height: 420px; }
+    .controls { margin-bottom: 12px; }
+    button { margin-right: 8px; padding: 6px 12px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="controls">
+      <button id="btnPng">下载 PNG</button>
+      <button id="btnSvg">下载 SVG</button>
+      <button id="btnPdf">下载 PDF</button>
+    </div>
+    <div id="chart"></div>
+  </div>
+  <script>
+    const styleOptions = {
+      fontFamilyCandidates: ['Noto Sans SC','Microsoft YaHei','SimHei','Source Han Sans SC'],
+      titleFontSizeCandidates: [18, 20, 22],
+      axisFontSizeCandidates: [12, 13, 14],
+      lineWidthCandidates: [2, 2.5, 3],
+      symbolSizeCandidates: [6, 7, 8],
+      smoothCandidates: [false, true, 0.35],
+      gridMarginCandidates: [
+        { top: 60, right: 60, bottom: 60, left: 60 },
+        { top: 70, right: 70, bottom: 70, left: 70 },
+        { top: 55, right: 80, bottom: 60, left: 70 }
+      ],
+      paletteCandidates: [
+        ['#2b6cb0', '#c05621', '#2f855a', '#805ad5'],
+        ['#1f77b4', '#ff7f0e', '#2ca02c', '#9467bd'],
+        ['#4c6aaf', '#d46a6a', '#5a8f7b', '#b091c9']
+      ],
+      legendPosCandidates: [
+        { top: 20, left: 'center' },
+        { bottom: 15, left: 'center' },
+        { top: 20, right: 30 }
+      ],
+      yAxisNameCandidates: ['准确率(%)', 'F1得分(%)', 'AUC(%)'],
+      xAxisNameCandidates: ['场景复杂度', '任务难度', '测试条件']
+    };
+
+    const selectedStyle = {
+      fontFamily: styleOptions.fontFamilyCandidates[0],
+      titleFontSize: styleOptions.titleFontSizeCandidates[1],
+      axisFontSize: styleOptions.axisFontSizeCandidates[1],
+      lineWidth: styleOptions.lineWidthCandidates[1],
+      symbolSize: styleOptions.symbolSizeCandidates[1],
+      smooth: styleOptions.smoothCandidates[2],
+      gridMargin: styleOptions.gridMarginCandidates[0],
+      palette: styleOptions.paletteCandidates[0],
+      legendPos: styleOptions.legendPosCandidates[0],
+      yAxisName: styleOptions.yAxisNameCandidates[0],
+      xAxisName: styleOptions.xAxisNameCandidates[0]
+    };
+
+    const dom = document.getElementById('chart');
+    const chart = echarts.init(dom, null, { renderer: 'svg' });
+
+    const categories = ['低', '中', '中高', '高'];
+    const data = {
+      '模型A': [78, 82, 85, 88],
+      '模型B': [72, 80, 83, 86],
+      '模型C': [70, 75, 79, 81]
+    };
+
+    const series = Object.keys(data).map(name => ({
+      name,
+      type: 'line',
+      smooth: selectedStyle.smooth,
+      data: data[name],
+      label: {
+        show: true,
+        formatter: params => `${params.value}%`,
+        position: 'top',
+        distance: 6,
+        fontSize: selectedStyle.axisFontSize,
+        fontFamily: selectedStyle.fontFamily,
+        color: '#333'
+      },
+      lineStyle: {
+        width: selectedStyle.lineWidth
+      },
+      symbolSize: selectedStyle.symbolSize
+    }));
+
+    const option = {
+      color: selectedStyle.palette,
+      backgroundColor: '#fff',
+      title: {
+        text: '不同模型在场景复杂度下的准确率对比',
+        left: 'center',
+        top: 0,
+        textStyle: {
+          fontFamily: selectedStyle.fontFamily,
+          fontSize: selectedStyle.titleFontSize,
+          fontWeight: 600,
+          color: '#111'
+        }
+      },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#d9d9d9',
+        borderWidth: 1,
+        textStyle: {
+          color: '#333',
+          fontFamily: selectedStyle.fontFamily,
+          fontSize: selectedStyle.axisFontSize
+        }
+      },
+      legend: {
+        ...selectedStyle.legendPos,
+        itemWidth: 16,
+        itemHeight: 10,
+        textStyle: {
+          fontFamily: selectedStyle.fontFamily,
+          fontSize: selectedStyle.axisFontSize,
+          color: '#333'
+        }
+      },
+      grid: {
+        ...selectedStyle.gridMargin,
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        name: selectedStyle.xAxisName,
+        data: categories,
+        boundaryGap: false,
+        axisLabel: {
+          fontFamily: selectedStyle.fontFamily,
+          fontSize: selectedStyle.axisFontSize,
+          color: '#333'
+        },
+        nameTextStyle: {
+          fontFamily: selectedStyle.fontFamily,
+          fontSize: selectedStyle.axisFontSize,
+          color: '#333',
+          padding: [10, 0, 0, 0]
+        },
+        axisLine: {
+          lineStyle: { color: '#bfbfbf' }
+        },
+        axisTick: { show: false },
+        splitLine: { show: false }
+      },
+      yAxis: {
+        type: 'value',
+        name: selectedStyle.yAxisName,
+        min: 65,
+        max: 90,
+        interval: 5,
+        axisLabel: {
+          formatter: '{value}%',
+          fontFamily: selectedStyle.fontFamily,
+          fontSize: selectedStyle.axisFontSize,
+          color: '#333'
+        },
+        nameTextStyle: {
+          fontFamily: selectedStyle.fontFamily,
+          fontSize: selectedStyle.axisFontSize,
+          color: '#333',
+          padding: [0, 0, 10, 0]
+        },
+        axisLine: { lineStyle: { color: '#bfbfbf' } },
+        axisTick: { show: false },
+        splitLine: {
+          show: true,
+          lineStyle: { color: '#e6e6e6', type: 'solid' }
+        }
+      },
+      series,
+      toolbox: {
+        feature: {
+          saveAsImage: { type: 'png' }
+        },
+        right: 20,
+        top: 20
+      }
+    };
+
+    chart.setOption(option);
+    window.addEventListener('resize', () => chart.resize());
+
+    function download(url, filename) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    document.getElementById('btnPng').addEventListener('click', () => {
+      const url = chart.getDataURL({ type: 'png', pixelRatio: 3, backgroundColor: '#fff' });
+      download(url, 'chart.png');
+    });
+
+    document.getElementById('btnSvg').addEventListener('click', () => {
+      const url = chart.getDataURL({ type: 'svg' });
+      download(url, 'chart.svg');
+    });
+
+    document.getElementById('btnPdf').addEventListener('click', async () => {
+      const svgDataUrl = chart.getDataURL({ type: 'svg' });
+      try {
+        const response = await fetch(svgDataUrl);
+        const svgText = await response.text();
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+        const svgElement = svgDoc.documentElement;
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit: 'pt', format: [900, 420] });
+        await svg2pdf(svgElement, pdf, { x: 0, y: 0, width: 900, height: 420 });
+        pdf.save('chart.pdf');
+      } catch (err) {
+        console.error('PDF 导出失败: ', err);
+        alert('PDF 导出未完成，但 PNG/SVG 可正常下载');
+      }
+    });
+  </script>
+</body>
+</html>
